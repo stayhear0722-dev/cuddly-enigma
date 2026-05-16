@@ -28,9 +28,9 @@ python -m src.scan --no-email
 
 在私有 GitHub 仓库中设置以下 Secrets：
 
-- `MAIL_USERNAME`：发件邮箱账号，例如 `3218238499@qq.com`
+- `MAIL_USERNAME`：发件邮箱账号，例如 `2804719869@qq.com`
 - `MAIL_PASSWORD`：邮箱 SMTP 授权码，不是 QQ 登录密码
-- `MAIL_TO`：收件邮箱，例如 `3218238499@qq.com`
+- `MAIL_TO`：收件邮箱，例如 `2804719869@qq.com`
 
 QQ 邮箱需要在“设置 - 账号 - POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV 服务”中开启 SMTP，并生成授权码。
 
