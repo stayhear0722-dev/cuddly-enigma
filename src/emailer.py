@@ -5,10 +5,23 @@ import smtplib
 from email.mime.text import MIMEText
 
 
+def clean_secret_value(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+    if lines:
+        cleaned = lines[-1]
+    for separator in ("：", ":"):
+        if separator in cleaned:
+            cleaned = cleaned.rsplit(separator, 1)[-1].strip()
+    return cleaned
+
+
 def send_email(subject: str, body: str, config: dict) -> None:
-    username = os.environ.get("MAIL_USERNAME")
-    password = os.environ.get("MAIL_PASSWORD")
-    recipient = os.environ.get("MAIL_TO") or config["profile"].get("target_email")
+    username = clean_secret_value(os.environ.get("MAIL_USERNAME"))
+    password = clean_secret_value(os.environ.get("MAIL_PASSWORD"))
+    recipient = clean_secret_value(os.environ.get("MAIL_TO")) or config["profile"].get("target_email")
 
     missing = [
         name
