@@ -2,6 +2,11 @@ name: Job Digest
 
 on:
   workflow_dispatch:
+    inputs:
+      resume_text:
+        description: "Paste resume text for this run. Leave blank to use RESUME_TEXT secret or default profile."
+        required: false
+        type: string
   schedule:
     - cron: "0 1 */3 * *"
 
@@ -30,7 +35,7 @@ jobs:
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-          RESUME_TEXT: ${{ secrets.RESUME_TEXT }}
+          RESUME_TEXT: ${{ inputs.resume_text || secrets.RESUME_TEXT }}
         run: python -m src.scan
 
       - name: Commit generated history
