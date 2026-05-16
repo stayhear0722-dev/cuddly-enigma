@@ -7,6 +7,7 @@ from pathlib import Path
 from .config import ROOT, load_config
 from .emailer import send_email
 from .history import append_history, load_seen_urls
+from .profile import analyze_resume, apply_resume_profile
 from .rank import score_job
 from .report import render_markdown, save_report
 from .search import fetch_page_text, fetch_search_results
@@ -140,8 +141,12 @@ def main() -> None:
     args = parser.parse_args()
 
     config = load_config(args.config)
+    resume_profile = analyze_resume()
+    config = apply_resume_profile(config, resume_profile)
     if args.limit is not None:
         config["search"]["limit"] = args.limit
+
+    print(f"[info] resume profile: {resume_profile.summary()}")
 
     history_path = ROOT / "data" / "history.csv"
     report_dir = ROOT / "reports"

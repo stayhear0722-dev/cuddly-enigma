@@ -88,8 +88,10 @@ def score_job(job: JobCandidate, page_text: str, config: dict) -> JobCandidate |
     score += min(role_hits, 4) * 10
     score += min(grad_hits, 2) * 8
     score += min(industry_hits, 3) * 5
-    if any(word in text for word in ("数据清洗", "统计", "机器学习", "建模", "Excel", "Python", "SQL")):
-        score += 10
+    skill_keywords = config.get("profile_analysis", {}).get("skill_keywords", [])
+    skill_hits = count_matches(text, skill_keywords)
+    if skill_hits:
+        score += min(skill_hits, 3) * 5
     if job.source in ("牛客", "实习僧", "智联招聘", "猎聘", "前程无忧", "BOSS直聘"):
         score += 5
     if is_listing_page(job.url):
@@ -100,7 +102,7 @@ def score_job(job: JobCandidate, page_text: str, config: dict) -> JobCandidate |
     job.company = infer_company(job, text)
     job.company_intro = build_company_intro(text, config["industries"])
     job.score = score
-    job.match_reason = build_match_reason(text)
+    job.match_reason = build_match_reason(text, config)
     job.risks = build_risks(job, text, grad_hits)
     return job
 
@@ -118,17 +120,18 @@ def is_listing_page(url: str) -> bool:
     )
 
 
-def build_match_reason(text: str) -> str:
+def build_match_reason(text: str, config: dict) -> str:
     reasons = []
-    if any(word in text for word in ("数据分析", "数据运营", "商业分析")):
-        reasons.append("岗位方向与数据分析/数据运营目标一致")
-    if any(word in text for word in ("Excel", "统计", "报表", "指标")):
-        reasons.append("能对应简历中的 Excel、基础统计和资料汇总能力")
-    if any(word in text for word in ("机器学习", "建模", "预测", "算法", "Python", "SQL")):
-        reasons.append("能体现建模、数据清洗和结构化数据处理项目经验")
+    profile = config.get("profile_analysis", {})
+    matched_roles = [role for role in profile.get("role_keywords", []) if role.lower() in text.lower()]
+    matched_skills = [skill for skill in profile.get("skill_keywords", []) if skill.lower() in text.lower()]
+    if matched_roles:
+        reasons.append(f"岗位方向命中简历目标：{'、'.join(matched_roles[:3])}")
+    if matched_skills:
+        reasons.append(f"岗位要求命中简历技能：{'、'.join(matched_skills[:4])}")
     if any(word in text for word in ("AI", "人工智能", "智能硬件", "物联网", "IoT")):
         reasons.append("公司或岗位方向贴近 AI/智能硬件/互联网行业")
-    return "；".join(reasons[:3]) or "岗位关键词与你的数据类实习目标匹配"
+    return "；".join(reasons[:3]) or "岗位关键词与当前简历画像匹配"
 
 
 def build_risks(job: JobCandidate, text: str, grad_hits: int) -> list[str]:

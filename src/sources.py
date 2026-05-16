@@ -23,7 +23,12 @@ def fetch_shixiseng_jobs(config: dict) -> list[JobCandidate]:
         "User-Agent": user_agent,
         "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
     }
-    keywords = ["数据分析", "数据运营", "商业分析", "数据产品", "AI数据", "数据标注"]
+    keywords = [
+        keyword.replace("实习", "")
+        for keyword in config.get("profile_analysis", {}).get("role_keywords", [])
+    ]
+    keywords.extend(["数据分析", "数据运营", "商业分析", "数据产品", "AI数据", "数据标注"])
+    keywords = list(dict.fromkeys(keyword for keyword in keywords if keyword))
     jobs: list[JobCandidate] = []
     seen: set[str] = set()
 

@@ -11,6 +11,7 @@ def render_markdown(jobs: list[JobCandidate], config: dict) -> str:
     lines = [
         f"# 27届实习岗位推荐 - {today}",
         "",
+        f"简历画像：{config.get('profile_analysis', {}).get('summary', '未配置，使用默认画像')}",
         f"目标城市：{', '.join(config['locations'])}",
         f"岗位方向：{', '.join(config['role_keywords'][:5])}",
         "",
