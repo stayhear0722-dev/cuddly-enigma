@@ -89,7 +89,7 @@ def analyze_resume(text: str | None = None) -> ResumeProfile:
     raw = (text or load_resume_text()).strip()
     profile = ResumeProfile(raw_text=raw)
 
-    years = sorted(set(re.findall(r"20(?:2[5-9]|3[0-5])", raw)))
+    years = infer_graduation_years(raw)
     for year in years:
         profile.graduation_keywords.extend([year, f"{year}届", f"{year[-2:]}届"])
     if "应届" in raw:
@@ -99,7 +99,7 @@ def analyze_resume(text: str | None = None) -> ResumeProfile:
     if not profile.graduation_keywords:
         profile.graduation_keywords = ["实习生", "在校生"]
 
-    profile.locations = [city for city in KNOWN_CITIES if city in raw]
+    profile.locations = infer_target_locations(raw)
     profile.role_keywords = [role for role in ROLE_KEYWORDS if role.lower() in raw.lower()]
     profile.skill_keywords = [skill for skill in SKILL_KEYWORDS if skill.lower() in raw.lower()]
 
@@ -108,6 +108,39 @@ def analyze_resume(text: str | None = None) -> ResumeProfile:
     if not profile.skill_keywords:
         profile.skill_keywords = ["Excel", "统计", "数据清洗", "建模"]
     return profile
+
+
+def infer_graduation_years(text: str) -> list[str]:
+    explicit_years = set(re.findall(r"(20(?:2[5-9]|3[0-5]))\s*届", text))
+    short_years = set(re.findall(r"(?<!\d)(2[5-9]|3[0-5])\s*届", text))
+    for short in short_years:
+        explicit_years.add(f"20{short}")
+    if explicit_years:
+        return sorted(explicit_years, reverse=True)
+
+    education_matches = re.findall(
+        r"(?:教育经历|学校|大学|本科|硕士|博士|专业)[\s\S]{0,80}?(20(?:2[5-9]|3[0-5]))(?:\.\d{1,2})?",
+        text,
+    )
+    if education_matches:
+        return [max(education_matches)]
+
+    all_years = re.findall(r"20(?:2[5-9]|3[0-5])", text)
+    if all_years:
+        return [max(all_years)]
+    return []
+
+
+def infer_target_locations(text: str) -> list[str]:
+    windows = []
+    for marker in ("意向城市", "目标城市", "期望城市", "求职城市", "工作地点", "意向地点"):
+        index = text.find(marker)
+        if index >= 0:
+            windows.append(text[index : index + 80])
+    if not windows:
+        return []
+    joined = "\n".join(windows)
+    return [city for city in KNOWN_CITIES if city in joined]
 
 
 def apply_resume_profile(config: dict, profile: ResumeProfile) -> dict:
