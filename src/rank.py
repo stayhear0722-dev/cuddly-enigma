@@ -24,6 +24,23 @@ def count_matches(text: str, keywords: list[str]) -> int:
     return sum(1 for keyword in keywords if keyword.lower() in lower)
 
 
+def is_recruitment_platform(job: JobCandidate) -> bool:
+    host = urlparse(job.url).netloc.lower()
+    return job.source in ("牛客", "实习僧", "智联招聘", "猎聘", "前程无忧", "BOSS直聘") or any(
+        domain in host
+        for domain in (
+            "nowcoder.com",
+            "shixiseng.com",
+            "zhaopin.com",
+            "liepin.com",
+            "51job.com",
+            "zhipin.com",
+            "lagou.com",
+            "yingjiesheng.com",
+        )
+    )
+
+
 def infer_city(text: str, cities: list[str]) -> str:
     for city in cities:
         if city in text:
@@ -45,6 +62,9 @@ def infer_company(job: JobCandidate, text: str) -> str:
 
 
 def build_company_intro(text: str, industries: list[str]) -> str:
+    if "近几年发展：" in text and "链接点开：" in text:
+        return text
+
     size = "规模公开信息未明确"
     for pattern in [
         r"(\d{2,6}\s*-\s*\d{2,6}人)",
@@ -92,17 +112,21 @@ def score_job(job: JobCandidate, page_text: str, config: dict) -> JobCandidate |
     skill_hits = count_matches(text, skill_keywords)
     if skill_hits:
         score += min(skill_hits, 3) * 5
-    if job.source in ("牛客", "实习僧", "智联招聘", "猎聘", "前程无忧", "BOSS直聘"):
-        score += 5
+    if "官方" in job.source or "官网" in job.source:
+        score += 8
+    if is_recruitment_platform(job):
+        score -= 25
     if is_listing_page(job.url):
         score -= 15
     score = min(score, 100)
 
     job.city = city
     job.company = infer_company(job, text)
-    job.company_intro = build_company_intro(text, config["industries"])
+    if not job.company_intro:
+        job.company_intro = build_company_intro(text, config["industries"])
     job.score = score
-    job.match_reason = build_match_reason(text, config)
+    if not job.match_reason:
+        job.match_reason = build_match_reason(text, config)
     job.risks = build_risks(job, text, grad_hits)
     return job
 
@@ -136,6 +160,7 @@ def build_match_reason(text: str, config: dict) -> str:
 
 def build_risks(job: JobCandidate, text: str, grad_hits: int) -> list[str]:
     risks: list[str] = []
+    is_official_source = "官方" in job.source or "官网" in job.source
     if grad_hits == 0:
         risks.append("页面未明确写 27届/2027届，需打开链接确认")
     if job.company == "待确认":
@@ -144,6 +169,8 @@ def build_risks(job: JobCandidate, text: str, grad_hits: int) -> list[str]:
         risks.append("投递可能需要登录或验证码")
     if is_listing_page(job.url):
         risks.append("该链接可能是搜索列表页，需点进具体岗位后投递")
-    if not any(word in text for word in ("发布", "更新", "2026", "2025")):
+    if is_recruitment_platform(job):
+        risks.append("招聘软件信息，仅作为补充线索；优先去公司官网确认并投递")
+    if not is_official_source and not any(word in text for word in ("发布", "更新", "2026", "2025")):
         risks.append("发布时间不明确，可能已下线")
     return risks

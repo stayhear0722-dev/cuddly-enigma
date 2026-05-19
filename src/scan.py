@@ -11,7 +11,7 @@ from .profile import analyze_resume, apply_resume_profile
 from .rank import score_job
 from .report import render_markdown, save_report
 from .search import fetch_page_text, fetch_search_results
-from .sources import fetch_shixiseng_jobs
+from .sources import fetch_official_jobs
 
 
 NOISE_DOMAINS = (
@@ -20,6 +20,18 @@ NOISE_DOMAINS = (
     "zhihu.com",
     "hangzhou.gov.cn",
     "gotravellingworld.com",
+)
+
+RECRUITMENT_PLATFORM_DOMAINS = (
+    "nowcoder.com",
+    "shixiseng.com",
+    "zhaopin.com",
+    "liepin.com",
+    "51job.com",
+    "zhipin.com",
+    "lagou.com",
+    "yingjiesheng.com",
+    "maimai.cn",
 )
 
 
@@ -51,21 +63,22 @@ def collect_jobs(config: dict, history_path: Path) -> list:
     max_candidates = int(config["search"]["max_candidates"])
     max_detail_pages = int(config["search"].get("max_detail_pages", 20))
     limit = int(config["search"]["limit"])
+    search_target = min(max_candidates, limit * 3)
     seen_urls = load_seen_urls(history_path)
 
     candidates = []
     candidate_urls = set(seen_urls)
-    for result in fetch_shixiseng_jobs(config):
+    for result in fetch_official_jobs(config):
         key = result.key()
         if key and key not in candidate_urls and is_candidate_relevant(result, config):
             candidate_urls.add(key)
             candidates.append(result)
-        if len(candidates) >= max_candidates:
+        if len(candidates) >= limit:
             break
 
     search_errors = 0
     for query in build_queries(config):
-        if len(candidates) >= max_candidates:
+        if len(candidates) >= search_target or len(candidates) >= limit:
             break
         try:
             results = fetch_search_results(
@@ -86,9 +99,9 @@ def collect_jobs(config: dict, history_path: Path) -> list:
                 continue
             candidate_urls.add(key)
             candidates.append(result)
-            if len(candidates) >= max_candidates:
+            if len(candidates) >= search_target:
                 break
-        if len(candidates) >= max_candidates:
+        if len(candidates) >= search_target:
             break
 
     print(f"[info] candidates collected: {len(candidates)}; search errors: {search_errors}")

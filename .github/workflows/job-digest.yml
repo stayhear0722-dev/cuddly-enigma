@@ -8,6 +8,7 @@ on:
         required: false
         type: string
   schedule:
+    # Every 3 days at 09:00 Asia/Shanghai. GitHub cron uses UTC.
     - cron: "0 1 */3 * *"
 
 permissions:

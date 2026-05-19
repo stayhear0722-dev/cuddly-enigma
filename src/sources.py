@@ -12,6 +12,42 @@ from .search import clean_text
 PRIVATE_USE_CHARS = dict.fromkeys(range(0xE000, 0xF8FF + 1), None)
 
 
+def fetch_official_jobs(config: dict) -> list[JobCandidate]:
+    jobs: list[JobCandidate] = []
+    for item in config.get("official_targets", []):
+        snippet = " ".join(
+            str(part)
+            for part in [
+                item.get("city", ""),
+                item.get("district", ""),
+                item.get("link_type", ""),
+                item.get("company_intro", ""),
+                item.get("recent_development", ""),
+                item.get("fit_reason", ""),
+                "2027届 实习生 在校生 官方招聘 1000人以上",
+            ]
+            if part
+        )
+        jobs.append(
+            JobCandidate(
+                title=item["title"],
+                company=item["company"],
+                city=item.get("city", "待确认"),
+                url=item["url"],
+                source=item.get("source", "公司官网"),
+                snippet=snippet,
+                company_intro=(
+                    f"{item.get('company_intro', '公司介绍待补充')}；"
+                    f"近几年发展：{item.get('recent_development', '公开信息待确认')}；"
+                    f"地点：{item.get('city', '待确认')}{item.get('district', '')}；"
+                    f"链接点开：{item.get('link_type', '官方招聘入口')}"
+                ),
+                match_reason=item.get("fit_reason", ""),
+            )
+        )
+    return jobs
+
+
 def clean_job_title(value: str) -> str:
     return clean_text(value.translate(PRIVATE_USE_CHARS)).replace("  ", " ")
 

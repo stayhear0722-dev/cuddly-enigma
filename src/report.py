@@ -21,7 +21,7 @@ def render_markdown(jobs: list[JobCandidate], config: dict) -> str:
             [
                 "本次没有找到符合条件的新岗位。",
                 "",
-                "建议下次扩大关键词，或加入更多公司官网招聘页。",
+                "建议下次扩大关键词，或加入更多公司官网招聘页；本项目不会用招聘平台链接凑数。",
             ]
         )
         return "\n".join(lines)
